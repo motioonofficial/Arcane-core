@@ -1,5 +1,5 @@
 
-![Logo](https://raw.githubusercontent.com/motioonofficial/Arcane-core/refs/heads/main/ArcaneCore.png?token=GHSAT0AAAAAADN47L6ICPUECP66WN2V5L2A2JHGXXA)
+![Logo](https://raw.githubusercontent.com/motioonofficial/Arcane-core/refs/heads/main/ArcaneBanner.png??raw=true))
 
 
 
