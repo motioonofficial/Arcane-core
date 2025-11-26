@@ -1,4 +1,7 @@
-# Arcane-TS
+
+![Logo](https://raw.githubusercontent.com/motioonofficial/Arcane-core/refs/heads/main/ArcaneCore.png?token=GHSAT0AAAAAADN47L6ICPUECP66WN2V5L2A2JHGXXA)
+
+
 
 Habbo Hotel Emulator written in TypeScript/Bun - WebSocket support for Nitro Client.
 
