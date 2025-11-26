@@ -1,0 +1,63 @@
+{
+    "logging": {
+        "enabled": true,
+        "level": "info",
+        "allCategories": true,
+
+        "categories": {
+            "packets": {
+                "enabled": true,
+                "incoming": true,
+                "outgoing": true,
+                "showData": false,
+                "showName": true
+            },
+
+            "movement": {
+                "enabled": false,
+                "showPath": true,
+                "showPosition": true,
+                "showRotation": true
+            },
+
+            "rooms": {
+                "enabled": false,
+                "showEntry": true,
+                "showExit": true,
+                "showLoad": true
+            },
+
+            "chat": {
+                "enabled": false,
+                "showMessages": true,
+                "showWhispers": true
+            },
+
+            "users": {
+                "enabled": false,
+                "showLogin": true,
+                "showLogout": true,
+                "showActions": true
+            },
+
+            "database": {
+                "enabled": false,
+                "showQueries": false,
+                "showErrors": true
+            },
+
+            "network": {
+                "enabled": false,
+                "showConnections": true,
+                "showDisconnections": true,
+                "showErrors": true
+            }
+        },
+
+        "format": {
+            "timestamp": true,
+            "colors": true,
+            "context": true
+        }
+    }
+}
