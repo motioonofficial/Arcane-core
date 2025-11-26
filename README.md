@@ -1,4 +1,4 @@
-<img width="830" height="200" alt="ArcaneBanner" src="https://github.com/user-attachments/assets/92fda305-e94f-4298-996b-e32e1b84327a" />
+<img width="830" height="700" alt="arcanebab" src="https://github.com/user-attachments/assets/599789d8-a9c2-4415-bf7e-ce745f8c8e8c" />
 
 
 Habbo Hotel Emulator written in TypeScript/Bun - WebSocket support for Nitro Client.
