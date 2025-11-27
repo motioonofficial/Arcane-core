@@ -9,6 +9,7 @@ import { ClientMessage } from '../messages/ClientMessage';
 import { ServerMessage } from '../messages/ServerMessage';
 import { RC4 } from '../crypto/RC4';
 import type { Habbo } from '../game/users/Habbo';
+import { game } from '../game/GameEnvironment';
 
 export class GameClient {
     private static nextId = 1;
@@ -177,9 +178,19 @@ export class GameClient {
     /**
      * Clean up on disconnect
      */
-    public dispose(): void {
+    public async dispose(): Promise<void> {
         this.disconnecting = true;
-        this.habbo = null;
+
+        // Remove from HabboManager and dispose Habbo
+        if (this.habbo) {
+            const habboManager = game.getHabboManager();
+            if (habboManager) {
+                habboManager.removeHabbo(this.habbo);
+            }
+            await this.habbo.dispose();
+            this.habbo = null;
+        }
+
         this.rc4Client = null;
         this.rc4Server = null;
         this.buffer = Buffer.alloc(0);

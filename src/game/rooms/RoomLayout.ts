@@ -119,6 +119,15 @@ export class RoomLayout {
         return this.getTile(tile.getX() + offsetX, tile.getY() + offsetY);
     }
 
+    /**
+     * Get tile in front of given coordinates
+     */
+    public getTileInFrontOf(x: number, y: number, rotation: number): RoomTile | null {
+        const tile = this.getTile(x, y);
+        if (!tile) return null;
+        return this.getTileInFront(tile, rotation);
+    }
+
     public getDoorTile(): RoomTile | null {
         return this.getTile(this.doorX, this.doorY);
     }

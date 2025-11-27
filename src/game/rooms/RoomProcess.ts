@@ -56,8 +56,16 @@ export class RoomProcess {
                 const roomUnit = habbo.getRoomUnit();
                 if (!roomUnit) continue;
 
-                // Check if user just finished walking (for sit/lay check)
-                const wasWalking = roomUnit.isWalking();
+                // Java: Sit/lay check runs BEFORE movement (cycleRoomUnit before cycle)
+                // sitUpdate flag is set when path ends, checked on NEXT tick
+                if (!roomUnit.isWalking() && roomUnit.needsSitUpdate()) {
+                    this.logger.debug(`Sit update check at (${roomUnit.getX()},${roomUnit.getY()})`);
+                    this.handleSitLayCheck(habbo);
+                    roomUnit.setSitUpdate(false);
+                    if (!usersToUpdate.includes(habbo)) {
+                        usersToUpdate.push(habbo);
+                    }
+                }
 
                 // Process movement - returns true if status changed
                 const needsUpdate = roomUnit.processMovement();
@@ -66,18 +74,15 @@ export class RoomProcess {
                     roomUnit.resetIdleTimer(); // Reset idle when moving
                 }
 
-                // Check for sit/lay when user stops walking (like Java sitUpdate)
-                const stoppedWalking = wasWalking && !roomUnit.isWalking();
-                if (stoppedWalking) {
-                    this.handleSitLayCheck(habbo);
-                    if (!usersToUpdate.includes(habbo)) {
-                        usersToUpdate.push(habbo);
-                    }
-                }
-
                 // Not moving - check idle
                 if (!roomUnit.isWalking()) {
                     roomUnit.incrementIdleTimer();
+
+                    // Send idle status when user becomes idle (like Java)
+                    // IDLE_CYCLES = 240 ticks = ~120 seconds at 500ms
+                    if (roomUnit.getIdleTimer() === 240 && !roomUnit.isDancing()) {
+                        this.sendIdleStatus(habbo, true);
+                    }
 
                     // Do random head look when idle (but not when sitting/laying)
                     if (roomUnit.isIdle() && !roomUnit.hasStatus(RoomUnitStatus.SIT) && !roomUnit.hasStatus(RoomUnitStatus.LAY)) {
@@ -86,6 +91,16 @@ export class RoomProcess {
                             usersToUpdate.push(habbo);
                         }
                     }
+
+                    // Update AFK motto every minute
+                    if (roomUnit.isAfk()) {
+                        this.updateAfkMotto(habbo);
+                    }
+                }
+
+                // Check effect timeout
+                if (roomUnit.getEffectId() > 0 && roomUnit.isEffectExpired()) {
+                    this.removeEffect(habbo);
                 }
 
                 // Check if unit needs manual update (e.g., after stopping)
@@ -125,40 +140,26 @@ export class RoomProcess {
 
         const state = tile.getState();
 
-        this.logger.debug(`SitLayCheck: User at (${x},${y}) tile state: ${RoomTileState[state]}`);
-
         if (state === RoomTileState.SIT) {
             // Get the tallest chair at this position (like Java getTallestChair)
             const chair = this.room.getTallestChair(x, y);
             if (chair) {
-                this.logger.debug(`Found chair at (${chair.getX()},${chair.getY()}) Z:${chair.getZ()} height:${chair.getDefinition().getSitHeight()}`);
-
-                // Set Z to chair's Z position (like Java: unit.setZ(topItem.getZ()))
+                // Set Z to chair's Z position
                 roomUnit.setZ(chair.getZ());
 
-                // Set rotation to chair rotation (chairs have 4 directions: 0, 2, 4, 6)
+                // Set rotation to chair rotation
                 roomUnit.setRotation(chair.getRotation());
 
-                // Set sit status with height (like Java: Item.getCurrentHeight(topItem))
+                // Set sit status with height
                 roomUnit.setStatus(RoomUnitStatus.SIT, chair.getDefinition().getSitHeight().toFixed(2));
                 roomUnit.setNeedsUpdate(true);
-
-                this.logger.debug(`User now sitting, Z:${roomUnit.getZ()} rot:${roomUnit.getBodyRotation()}`);
-            } else {
-                this.logger.debug(`No chair found at user position!`);
             }
         } else if (state === RoomTileState.LAY) {
             // Get the bed at this position
             const bed = this.room.getTopItemAt(x, y);
             if (bed && bed.getDefinition().canLay()) {
-                this.logger.debug(`Found bed at (${bed.getX()},${bed.getY()}) Z:${bed.getZ()}`);
-
                 roomUnit.setZ(bed.getZ());
-
-                // For beds, rotation is along the bed length (0 or 2)
                 roomUnit.setRotation(bed.getRotation() % 4);
-
-                // Set lay status
                 roomUnit.setStatus(RoomUnitStatus.LAY, bed.getDefinition().getSitHeight().toFixed(2));
                 roomUnit.setNeedsUpdate(true);
             }
@@ -173,6 +174,72 @@ export class RoomProcess {
                 roomUnit.setNeedsUpdate(true);
             }
         }
+    }
+
+    /**
+     * Update AFK motto with duration
+     * Updates every 60 seconds (when minute changes)
+     */
+    private lastAfkUpdate: Map<number, number> = new Map();
+
+    private updateAfkMotto(habbo: Habbo): void {
+        const roomUnit = habbo.getRoomUnit();
+        if (!roomUnit || !roomUnit.isAfk()) return;
+
+        const currentMinute = roomUnit.getAfkMinutes();
+        const lastMinute = this.lastAfkUpdate.get(habbo.getId()) ?? -1;
+
+        // Only update if minute changed
+        if (currentMinute === lastMinute) return;
+
+        this.lastAfkUpdate.set(habbo.getId(), currentMinute);
+
+        // Update motto
+        const originalMotto = roomUnit.getOriginalMotto();
+        const newMotto = `[AFK] ${currentMinute} dk - ${originalMotto}`;
+        habbo.setMotto(newMotto);
+
+        // Send motto update to room
+        const response = new ServerMessage(Outgoing.RoomUserDataComposer);
+        response.appendInt(1); // Count
+        response.appendInt(habbo.getId());
+        response.appendString(habbo.getLook());
+        response.appendString(habbo.getGender());
+        response.appendString(newMotto);
+        response.appendInt(0); // Achievement score
+
+        this.room.sendToAll(response);
+    }
+
+    /**
+     * Send idle status to room (like Java RoomUnitIdleComposer)
+     */
+    private sendIdleStatus(habbo: Habbo, isIdle: boolean): void {
+        const roomUnit = habbo.getRoomUnit();
+        if (!roomUnit) return;
+
+        const response = new ServerMessage(Outgoing.RoomUnitIdleComposer);
+        response.appendInt(roomUnit.getId());
+        response.appendBoolean(isIdle);
+
+        this.room.sendToAll(response);
+    }
+
+    /**
+     * Remove effect from user (like Java)
+     */
+    private removeEffect(habbo: Habbo): void {
+        const roomUnit = habbo.getRoomUnit();
+        if (!roomUnit) return;
+
+        roomUnit.setEffectId(0);
+
+        const response = new ServerMessage(Outgoing.AvatarEffectComposer);
+        response.appendInt(roomUnit.getId());
+        response.appendInt(0); // No effect
+        response.appendInt(0); // Delay
+
+        this.room.sendToAll(response);
     }
 
     /**

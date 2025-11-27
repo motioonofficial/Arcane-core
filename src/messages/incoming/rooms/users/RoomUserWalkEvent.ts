@@ -4,6 +4,8 @@
  */
 
 import { MessageHandler } from '../../../MessageHandler';
+import { ServerMessage } from '../../../ServerMessage';
+import { Outgoing } from '../../../Headers';
 import { Pathfinder } from '../../../../game/rooms/Pathfinder';
 import { Logger } from '../../../../utils/Logger';
 
@@ -102,5 +104,31 @@ export class RoomUserWalkEvent extends MessageHandler {
         // Set goal and path
         roomUnit.setGoal(targetX, targetY);
         roomUnit.setPath(path);
+
+        // If user was AFK, disable AFK mode
+        if (roomUnit.isAfk()) {
+            roomUnit.setAfk(false);
+
+            // Restore original motto
+            const originalMotto = roomUnit.getOriginalMotto();
+            habbo.setMotto(originalMotto);
+
+            // Send motto update
+            const response = new ServerMessage(Outgoing.RoomUserDataComposer);
+            response.appendInt(1);
+            response.appendInt(habbo.getId());
+            response.appendString(habbo.getLook());
+            response.appendString(habbo.getGender());
+            response.appendString(originalMotto);
+            response.appendInt(0);
+            room.sendToAll(response);
+
+            // Remove idle effect
+            const effect = new ServerMessage(Outgoing.AvatarEffectComposer);
+            effect.appendInt(roomUnit.getId());
+            effect.appendInt(0);
+            effect.appendInt(0);
+            room.sendToAll(effect);
+        }
     }
 }

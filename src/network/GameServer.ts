@@ -70,7 +70,7 @@ export class GameServer {
         // Disconnect all clients
         for (const client of this.clients.values()) {
             client.disconnect('Server shutting down');
-            client.dispose();
+            await client.dispose();
         }
         this.clients.clear();
 
@@ -139,20 +139,20 @@ export class GameServer {
         }
     }
 
-    private onClose(socket: Socket<GameClient>): void {
+    private async onClose(socket: Socket<GameClient>): Promise<void> {
         const client = socket.data;
         if (!client) return;
 
         this.logger.debug(`Client ${client.id} disconnected`);
-        client.dispose();
+        await client.dispose();
         this.clients.delete(client.id);
     }
 
-    private onError(socket: Socket<GameClient>, error: Error): void {
+    private async onError(socket: Socket<GameClient>, error: Error): Promise<void> {
         const client = socket.data;
         if (client) {
             this.logger.error(`Socket error for client ${client.id}:`, error.message);
-            client.dispose();
+            await client.dispose();
             this.clients.delete(client.id);
         }
     }

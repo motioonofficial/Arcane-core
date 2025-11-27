@@ -138,6 +138,11 @@ export const Incoming = {
     GetForumsListEvent: 2487,
     GetMOTDEvent: 21,
     GetAvailabilityStatusEvent: 3898,
+
+    // Profile
+    RequestUserProfileEvent: 3265,
+    RequestWearingBadgesEvent: 2091,
+    RequestProfileFriendsEvent: 2138,
 } as const;
 
 export const Outgoing = {
@@ -198,6 +203,11 @@ export const Outgoing = {
     RoomUserRemoveComposer: 2661,
     RoomDataComposer: 687,
     RoomPaneComposer: 749,
+    RoomUserDataComposer: 3920,
+    DanceComposer: 2233,
+    CarryObjectComposer: 1474,
+    AvatarEffectComposer: 1167,
+    RoomUnitIdleComposer: 1797,
 
     // User
     UserUpdateComposer: 1640,
@@ -296,6 +306,11 @@ export const Outgoing = {
     IgnoredUsersComposer: 126,
     RelationshipsComposer: 2016,
     ForumsListComposer: 3001,
+
+    // Profile
+    UserProfileComposer: 3898,
+    UserWearingBadgesComposer: 717,
+    ProfileFriendsComposer: 2016,
 } as const;
 
 export type IncomingHeader = typeof Incoming[keyof typeof Incoming];

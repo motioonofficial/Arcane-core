@@ -28,6 +28,9 @@ import { ScrGetUserInfoEvent } from './incoming/users/ScrGetUserInfoEvent';
 import { GetHabboClubDataEvent } from './incoming/users/GetHabboClubDataEvent';
 import { GetIgnoredUsersEvent } from './incoming/users/GetIgnoredUsersEvent';
 import { GetRelationshipsEvent } from './incoming/users/GetRelationshipsEvent';
+import { RequestUserProfileEvent } from './incoming/users/RequestUserProfileEvent';
+import { RequestWearingBadgesEvent } from './incoming/users/RequestWearingBadgesEvent';
+import { RequestProfileFriendsEvent } from './incoming/users/RequestProfileFriendsEvent';
 
 // Import handlers - Misc
 import { GetPromoArticlesEvent } from './incoming/misc/GetPromoArticlesEvent';
@@ -38,6 +41,12 @@ import { GetAvailabilityStatusEvent } from './incoming/misc/GetAvailabilityStatu
 // Import handlers - Messenger
 import { MessengerInitEvent } from './incoming/messenger/MessengerInitEvent';
 import { GetBuddyRequestsEvent } from './incoming/messenger/GetBuddyRequestsEvent';
+import { FriendRequestEvent } from './incoming/messenger/FriendRequestEvent';
+import { AcceptFriendRequestEvent } from './incoming/messenger/AcceptFriendRequestEvent';
+import { DeclineFriendRequestEvent } from './incoming/messenger/DeclineFriendRequestEvent';
+import { RemoveFriendEvent } from './incoming/messenger/RemoveFriendEvent';
+import { FriendPrivateMessageEvent } from './incoming/messenger/FriendPrivateMessageEvent';
+import { FollowFriendEvent } from './incoming/messenger/FollowFriendEvent';
 
 // Import handlers - Navigator
 import { RequestNewNavigatorDataEvent } from './incoming/navigator/RequestNewNavigatorDataEvent';
@@ -59,6 +68,9 @@ import { GetHeightMapEvent } from './incoming/rooms/GetHeightMapEvent';
 // Import handlers - Room Users
 import { RoomUserWalkEvent } from './incoming/rooms/users/RoomUserWalkEvent';
 import { RoomUserLookAtEvent } from './incoming/rooms/users/RoomUserLookAtEvent';
+import { RoomUserDanceEvent } from './incoming/rooms/users/RoomUserDanceEvent';
+import { RoomUserActionEvent } from './incoming/rooms/users/RoomUserActionEvent';
+import { RoomUserSignEvent } from './incoming/rooms/users/RoomUserSignEvent';
 
 // Import handlers - Room Chat
 import { RoomUserTalkEvent } from './incoming/rooms/chat/RoomUserTalkEvent';
@@ -120,6 +132,9 @@ export class PacketManager {
         this.register(Incoming.GetHabboClubDataEvent, GetHabboClubDataEvent);
         this.register(Incoming.GetIgnoredUsersEvent, GetIgnoredUsersEvent);
         this.register(Incoming.GetRelationshipsEvent, GetRelationshipsEvent);
+        this.register(Incoming.RequestUserProfileEvent, RequestUserProfileEvent);
+        this.register(Incoming.RequestWearingBadgesEvent, RequestWearingBadgesEvent);
+        this.register(Incoming.RequestProfileFriendsEvent, RequestProfileFriendsEvent);
 
         // Misc
         this.register(Incoming.GetPromoArticlesEvent, GetPromoArticlesEvent);
@@ -130,6 +145,12 @@ export class PacketManager {
         // Messenger
         this.register(Incoming.MessengerInitEvent, MessengerInitEvent);
         this.register(Incoming.GetBuddyRequestsEvent, GetBuddyRequestsEvent);
+        this.register(Incoming.RequestBuddyEvent, FriendRequestEvent);
+        this.register(Incoming.AcceptBuddyEvent, AcceptFriendRequestEvent);
+        this.register(Incoming.DeclineBuddyEvent, DeclineFriendRequestEvent);
+        this.register(Incoming.RemoveBuddyEvent, RemoveFriendEvent);
+        this.register(Incoming.SendMsgEvent, FriendPrivateMessageEvent);
+        this.register(Incoming.FollowFriendEvent, FollowFriendEvent);
 
         // Navigator
         this.register(Incoming.RequestNewNavigatorDataEvent, RequestNewNavigatorDataEvent);
@@ -151,6 +172,9 @@ export class PacketManager {
         // Room Users
         this.register(Incoming.RoomUserWalkEvent, RoomUserWalkEvent);
         this.register(Incoming.RoomUserLookAtEvent, RoomUserLookAtEvent);
+        this.register(Incoming.RoomUserDanceEvent, RoomUserDanceEvent);
+        this.register(Incoming.RoomUserActionEvent, RoomUserActionEvent);
+        this.register(Incoming.RoomUserSignEvent, RoomUserSignEvent);
 
         // Room Chat
         this.register(Incoming.ChatEvent, RoomUserTalkEvent);

@@ -79,6 +79,7 @@ export class RoomUnit {
     private pathIndex: number = 0;
     private needsUpdate: boolean = false;
     private teleporting: boolean = false;
+    private sitUpdate: boolean = false; // Java: flag to check sit on NEXT tick after stopping
 
     // Idle & Look
     private idleTimer: number = 0;
@@ -89,6 +90,18 @@ export class RoomUnit {
     private headLookDuration: number = 0;
     private headLockFromUser: boolean = false; // true if locked from looking at user
     private originalHeadRotation: RoomUserRotation = RoomUserRotation.SOUTH;
+
+    // AFK Mode
+    private afk: boolean = false;
+    private afkStartTime: number = 0;
+    private originalMotto: string = '';
+
+    // Effect
+    private effectId: number = 0;
+    private effectEndTimestamp: number = 0;
+
+    // Dance
+    private danceType: number = 0;
 
     constructor() {}
 
@@ -301,6 +314,8 @@ export class RoomUnit {
         this.path = path;
         this.pathIndex = 0;
         this.walking = path.length > 0;
+        // Clear any pending sit update when new path is set
+        this.sitUpdate = false;
     }
 
     public getNextTile(): RoomTile | null {
@@ -316,7 +331,18 @@ export class RoomUnit {
             this.walking = false;
             this.path = [];
             this.pathIndex = 0;
+            // Java: Set sitUpdate flag when path ends - sit check happens on NEXT tick
+            this.sitUpdate = true;
         }
+    }
+
+    // Java: sitUpdate flag - indicates sit/lay check should happen next tick
+    public needsSitUpdate(): boolean {
+        return this.sitUpdate;
+    }
+
+    public setSitUpdate(value: boolean): void {
+        this.sitUpdate = value;
     }
 
     public clearPath(): void {
@@ -325,6 +351,7 @@ export class RoomUnit {
         this.walking = false;
         this.goalX = -1;
         this.goalY = -1;
+        this.sitUpdate = false;
     }
 
     public needsStatusUpdate(): boolean {
@@ -375,8 +402,9 @@ export class RoomUnit {
         const rotation = Pathfinder.calculateRotation(this.x, this.y, nextTile.getX(), nextTile.getY());
         this.setRotation(rotation as RoomUserRotation);
 
-        // Calculate target height
-        const targetZ = nextTile.getStackHeight();
+        // Calculate target height using Room.getStackHeight (includes furniture)
+        // Java: zHeight = room.getLayout().getHeightAtSquare() + item height (if not sit/lay)
+        const targetZ = this.room.getStackHeight(nextTile.getX(), nextTile.getY(), true);
 
         // Set MOVE status with target position (like Java: next.x + "," + next.y + "," + zHeight)
         this.setStatus(RoomUnitStatus.MOVE, `${nextTile.getX()},${nextTile.getY()},${targetZ}`);
@@ -601,5 +629,114 @@ export class RoomUnit {
         this.removeStatus(RoomUnitStatus.SIT);
         this.setStatus(RoomUnitStatus.LAY, height.toFixed(1));
         this.needsUpdate = true;
+    }
+
+    // === AFK METHODS ===
+
+    /**
+     * Check if user is AFK
+     */
+    public isAfk(): boolean {
+        return this.afk;
+    }
+
+    /**
+     * Set AFK status
+     */
+    public setAfk(afk: boolean): void {
+        this.afk = afk;
+        if (afk) {
+            this.afkStartTime = Date.now();
+        } else {
+            this.afkStartTime = 0;
+        }
+    }
+
+    /**
+     * Get AFK start time
+     */
+    public getAfkStartTime(): number {
+        return this.afkStartTime;
+    }
+
+    /**
+     * Get AFK duration in minutes
+     */
+    public getAfkMinutes(): number {
+        if (!this.afk || this.afkStartTime === 0) return 0;
+        return Math.floor((Date.now() - this.afkStartTime) / 60000);
+    }
+
+    /**
+     * Get original motto (before AFK)
+     */
+    public getOriginalMotto(): string {
+        return this.originalMotto;
+    }
+
+    /**
+     * Set original motto
+     */
+    public setOriginalMotto(motto: string): void {
+        this.originalMotto = motto;
+    }
+
+    // === EFFECT METHODS ===
+
+    /**
+     * Get current effect ID
+     */
+    public getEffectId(): number {
+        return this.effectId;
+    }
+
+    /**
+     * Set effect ID with optional duration
+     */
+    public setEffectId(effectId: number, duration: number = -1): void {
+        this.effectId = effectId;
+        if (duration === -1 || duration === 0) {
+            this.effectEndTimestamp = 0; // Permanent or no effect
+        } else {
+            this.effectEndTimestamp = Math.floor(Date.now() / 1000) + duration;
+        }
+    }
+
+    /**
+     * Get effect end timestamp
+     */
+    public getEffectEndTimestamp(): number {
+        return this.effectEndTimestamp;
+    }
+
+    /**
+     * Check if effect has expired
+     */
+    public isEffectExpired(): boolean {
+        if (this.effectEndTimestamp === 0) return false;
+        return Math.floor(Date.now() / 1000) > this.effectEndTimestamp;
+    }
+
+    // === DANCE METHODS ===
+
+    /**
+     * Get dance type (0=none, 1-4=dance styles)
+     */
+    public getDanceType(): number {
+        return this.danceType;
+    }
+
+    /**
+     * Set dance type
+     */
+    public setDanceType(danceType: number): void {
+        this.danceType = danceType;
+    }
+
+    /**
+     * Check if dancing
+     */
+    public isDancing(): boolean {
+        return this.danceType > 0;
     }
 }

@@ -3,6 +3,7 @@
  */
 
 import { ServerMessage } from '../../messages/ServerMessage';
+import { Outgoing } from '../../messages/Headers';
 import { RoomLayout, RoomTile, RoomTileState } from './RoomLayout';
 import { RoomUnit, RoomUserRotation, RoomUnitType } from './RoomUnit';
 import { RoomProcess } from './RoomProcess';
@@ -225,6 +226,39 @@ export class Room {
 
     public getHabbos(): Habbo[] {
         return Array.from(this.habbos.values());
+    }
+
+    /**
+     * Find a Habbo in the room by username (case-insensitive)
+     */
+    public getHabboByName(username: string): Habbo | undefined {
+        const lowerName = username.toLowerCase();
+        for (const habbo of this.habbos.values()) {
+            if (habbo.getUsername().toLowerCase() === lowerName) {
+                return habbo;
+            }
+        }
+        return undefined;
+    }
+
+    /**
+     * Send a chat message to all users in the room
+     */
+    public sendChat(habbo: Habbo, message: string, bubble: number = 0, type: number = 0): void {
+        const roomUnit = habbo.getRoomUnit();
+        if (!roomUnit) return;
+
+        // type: 0 = chat, 1 = shout, 2 = whisper
+        const composerId = type === 1 ? Outgoing.ShoutComposer : Outgoing.ChatComposer;
+        const response = new ServerMessage(composerId);
+        response.appendInt(roomUnit.getId());
+        response.appendString(message);
+        response.appendInt(bubble); // Bubble type
+        response.appendInt(bubble); // Bubble type again
+        response.appendInt(0); // Links count
+        response.appendInt(-1); // Timestamp
+
+        this.sendToAll(response);
     }
 
     public getUserCount(): number {

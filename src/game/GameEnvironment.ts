@@ -9,6 +9,7 @@ import { NavigatorManager } from './navigator/NavigatorManager';
 import { ItemManager } from './items/ItemManager';
 import { CatalogManager } from './catalog/CatalogManager';
 import { CommandManager, commandManager } from './commands/CommandManager';
+import { HabboManager } from './users/HabboManager';
 
 export class GameEnvironment {
     private logger = new Logger('GameEnvironment');
@@ -19,6 +20,7 @@ export class GameEnvironment {
     private itemManager!: ItemManager;
     private catalogManager!: CatalogManager;
     private commandManagerRef = commandManager;
+    private habboManager!: HabboManager;
 
     // Schedulers
     private schedulerInterval: ReturnType<typeof setInterval> | null = null;
@@ -36,6 +38,10 @@ export class GameEnvironment {
     }
 
     private async loadManagers(): Promise<void> {
+        // Habbo Manager (for tracking online users)
+        this.habboManager = new HabboManager();
+        this.logger.debug('HabboManager loaded');
+
         // Item Manager (load first, other managers depend on it)
         this.itemManager = new ItemManager();
         await this.itemManager.initialize();
@@ -106,6 +112,10 @@ export class GameEnvironment {
 
     public getCatalogManager(): CatalogManager {
         return this.catalogManager;
+    }
+
+    public getHabboManager(): HabboManager {
+        return this.habboManager;
     }
 }
 

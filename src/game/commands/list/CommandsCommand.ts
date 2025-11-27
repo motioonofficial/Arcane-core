@@ -1,5 +1,5 @@
 /**
- * CommandsCommand - Show available commands
+ * CommandsCommand - Show available commands (Java style alert)
  */
 
 import { Command, CommandPermission, type AnyClient } from '../Command';
@@ -12,7 +12,7 @@ import type { Room } from '../../rooms/Room';
 export class CommandsCommand extends Command {
     constructor() {
         super('commands', 'Kullanılabilir komutları listeler', 'commands');
-        this.aliases = ['cmds', 'help'];
+        this.aliases = ['cmds', 'komutlar'];
         this.permission = CommandPermission.USER;
     }
 
@@ -25,41 +25,47 @@ export class CommandsCommand extends Command {
 
         // Group by permission level
         const userCmds = availableCommands.filter(c => c.getPermission() === CommandPermission.USER);
+        const vipCmds = availableCommands.filter(c => c.getPermission() === CommandPermission.VIP);
         const modCmds = availableCommands.filter(c => c.getPermission() === CommandPermission.MODERATOR);
         const adminCmds = availableCommands.filter(c => c.getPermission() >= CommandPermission.ADMINISTRATOR);
 
-        let content = '<b>Kullanılabilir Komutlar</b>\r\r';
+        let content = `<b>━━━━ KOMUTLAR (${availableCommands.length}) ━━━━</b>\r\r`;
 
         if (userCmds.length > 0) {
-            content += '<b>Genel Komutlar:</b>\r';
+            content += '<b>◆ Genel Komutlar:</b>\r';
             for (const cmd of userCmds) {
-                content += `${prefix}${cmd.getName()} - ${cmd.getDescription()}\r`;
+                content += `  ${prefix}${cmd.getName()} - ${cmd.getDescription()}\r`;
+            }
+            content += '\r';
+        }
+
+        if (vipCmds.length > 0) {
+            content += '<b>◆ VIP Komutları:</b>\r';
+            for (const cmd of vipCmds) {
+                content += `  ${prefix}${cmd.getName()} - ${cmd.getDescription()}\r`;
             }
             content += '\r';
         }
 
         if (modCmds.length > 0) {
-            content += '<b>Moderatör Komutları:</b>\r';
+            content += '<b>◆ Moderatör Komutları:</b>\r';
             for (const cmd of modCmds) {
-                content += `${prefix}${cmd.getName()} - ${cmd.getDescription()}\r`;
+                content += `  ${prefix}${cmd.getName()} - ${cmd.getDescription()}\r`;
             }
             content += '\r';
         }
 
         if (adminCmds.length > 0) {
-            content += '<b>Admin Komutları:</b>\r';
+            content += '<b>◆ Admin Komutları:</b>\r';
             for (const cmd of adminCmds) {
-                content += `${prefix}${cmd.getName()} - ${cmd.getDescription()}\r`;
+                content += `  ${prefix}${cmd.getName()} - ${cmd.getDescription()}\r`;
             }
         }
 
-        const message = new ServerMessage(Outgoing.NotificationDialogComposer);
-        message.appendString('furni_placement_error');
-        message.appendInt(2);
-        message.appendString('message');
+        // Use BroadcastMessageAlertComposer for proper alert popup (like Java)
+        const message = new ServerMessage(Outgoing.BroadcastMessageAlertComposer);
         message.appendString(content);
-        message.appendString('title');
-        message.appendString('Komutlar');
+        message.appendString(''); // URL (empty)
 
         client.send(message);
         return true;

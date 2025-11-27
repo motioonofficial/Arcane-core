@@ -9,6 +9,7 @@ import type { Room } from '../rooms/Room';
 import type { RoomUnit } from '../rooms/RoomUnit';
 import { Logger } from '../../utils/Logger';
 import { UserInventory } from '../items/UserInventory';
+import { Messenger } from '../messenger/Messenger';
 import { game } from '../GameEnvironment';
 
 export interface HabboData {
@@ -51,11 +52,18 @@ export class Habbo {
     // Inventory
     private inventory: UserInventory | null = null;
 
+    // Messenger
+    private messenger: Messenger | null = null;
+
     // Position (deprecated, use roomUnit)
     private x: number = 0;
     private y: number = 0;
     private z: number = 0;
     private rotation: number = 0;
+
+    // Mute
+    private muted: boolean = false;
+    private muteEndTime: number = 0;
 
     constructor(id: number, client: GameClient | WebSocketClient) {
         this.id = id;
@@ -70,6 +78,9 @@ export class Habbo {
         } else {
             this.logger.warn('ItemManager not available, inventory not initialized');
         }
+
+        // Initialize messenger
+        this.messenger = new Messenger(this);
     }
 
     /**
@@ -100,8 +111,15 @@ export class Habbo {
      * Called when user disconnects
      */
     public async dispose(): Promise<void> {
-        // TODO: Leave room, save data, etc.
         this.logger.debug('Disposing Habbo');
+
+        // Notify friends about going offline
+        if (this.messenger) {
+            this.messenger.connectionChanged(false, false);
+            this.messenger.dispose();
+        }
+
+        // TODO: Leave room, save data, etc.
     }
 
     // Getters
@@ -145,6 +163,30 @@ export class Habbo {
         return this.rank;
     }
 
+    // Mute methods
+    public isMuted(): boolean {
+        if (this.muted && this.muteEndTime > 0 && Date.now() > this.muteEndTime) {
+            this.muted = false;
+            this.muteEndTime = 0;
+        }
+        return this.muted;
+    }
+
+    public setMuted(muted: boolean, duration: number = 0): void {
+        this.muted = muted;
+        if (muted && duration > 0) {
+            this.muteEndTime = Date.now() + duration;
+        } else {
+            this.muteEndTime = 0;
+        }
+    }
+
+    public getMuteTimeRemaining(): number {
+        if (!this.muted || this.muteEndTime === 0) return 0;
+        const remaining = this.muteEndTime - Date.now();
+        return remaining > 0 ? remaining : 0;
+    }
+
     public getCurrentRoom(): Room | null {
         return this.currentRoom;
     }
@@ -163,6 +205,10 @@ export class Habbo {
 
     public getInventory(): UserInventory | null {
         return this.inventory;
+    }
+
+    public getMessenger(): Messenger | null {
+        return this.messenger;
     }
 
     public getX(): number {

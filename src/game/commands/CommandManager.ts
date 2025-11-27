@@ -22,6 +22,17 @@ import { RoomAlertCommand } from './list/RoomAlertCommand';
 import { TeleportCommand } from './list/TeleportCommand';
 import { LayCommand } from './list/LayCommand';
 import { StandCommand } from './list/StandCommand';
+import { EnableCommand } from './list/EnableCommand';
+import { MimicCommand } from './list/MimicCommand';
+import { PullCommand } from './list/PullCommand';
+import { PushCommand } from './list/PushCommand';
+import { DanceCommand } from './list/DanceCommand';
+import { HandItemCommand } from './list/HandItemCommand';
+import { KickCommand } from './list/KickCommand';
+import { FreezeCommand } from './list/FreezeCommand';
+import { MoonwalkCommand } from './list/MoonwalkCommand';
+import { MuteCommand } from './list/MuteCommand';
+import { AfkCommand } from './list/AfkCommand';
 
 export class CommandManager {
     private logger = new Logger('CommandManager');
@@ -41,6 +52,16 @@ export class CommandManager {
         this.register(new SitCommand());
         this.register(new LayCommand());
         this.register(new StandCommand());
+        this.register(new DanceCommand());
+        this.register(new AfkCommand());
+
+        // VIP commands
+        this.register(new EnableCommand());
+        this.register(new MimicCommand());
+        this.register(new PullCommand());
+        this.register(new PushCommand());
+        this.register(new HandItemCommand());
+        this.register(new MoonwalkCommand());
 
         // Room owner commands
         this.register(new PickallCommand());
@@ -49,6 +70,9 @@ export class CommandManager {
         this.register(new HotelAlertCommand());
         this.register(new RoomAlertCommand());
         this.register(new TeleportCommand());
+        this.register(new KickCommand());
+        this.register(new FreezeCommand());
+        this.register(new MuteCommand());
     }
 
     private register(command: Command): void {

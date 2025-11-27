@@ -11,10 +11,21 @@ export class GetBuddyRequestsEvent extends MessageHandler {
         const habbo = this.client.getHabbo();
         if (!habbo) return;
 
-        // Send empty friend requests
+        const messenger = habbo.getMessenger();
+        if (!messenger) return;
+
+        const requests = messenger.getFriendRequests();
+        const requestsArray = Array.from(requests);
+
         const response = new ServerMessage(Outgoing.BuddyRequestsComposer);
-        response.appendInt(0); // Total requests
-        response.appendInt(0); // Requests on this page
+        response.appendInt(requestsArray.length); // Total requests
+        response.appendInt(requestsArray.length); // Requests count
+
+        for (const request of requestsArray) {
+            response.appendInt(request.getId());
+            response.appendString(request.getUsername());
+            response.appendString(request.getLook());
+        }
 
         this.client.send(response);
     }

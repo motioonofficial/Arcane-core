@@ -10,6 +10,7 @@ import { Outgoing } from '../../Headers';
 import { emulator } from '../../../core/Emulator';
 import { Habbo } from '../../../game/users/Habbo';
 import { Logger } from '../../../utils/Logger';
+import { game } from '../../../game/GameEnvironment';
 
 export class SSOTicketEvent extends MessageHandler {
     private logger = new Logger('SSOTicketEvent');
@@ -61,6 +62,12 @@ export class SSOTicketEvent extends MessageHandler {
             const habbo = new Habbo(userRow.id, this.client);
             await habbo.load(userRow);
             this.client.setHabbo(habbo);
+
+            // Add to HabboManager
+            const habboManager = game.getHabboManager();
+            if (habboManager) {
+                habboManager.addHabbo(habbo);
+            }
 
             // Update user in database (don't await - fire and forget for speed)
             db.execute(
