@@ -1,15 +1,15 @@
 /**
- * SitCommand - Make user sit down
+ * LayCommand - Make user lay down
  */
 
 import { Command, CommandPermission, type AnyClient } from '../Command';
 import type { Habbo } from '../../users/Habbo';
 import type { Room } from '../../rooms/Room';
 
-export class SitCommand extends Command {
+export class LayCommand extends Command {
     constructor() {
-        super('sit', 'Oturur/kalkar', 'sit');
-        this.aliases = ['otur'];
+        super('lay', 'Uzanır', 'lay');
+        this.aliases = ['uzat', 'uzan'];
         this.permission = CommandPermission.USER;
     }
 
@@ -19,19 +19,14 @@ export class SitCommand extends Command {
         const roomUnit = habbo.getRoomUnit();
         if (!roomUnit) return true;
 
-        // Can't sit while walking
-        if (roomUnit.isWalking()) return true;
-
-        // Toggle sit status
-        const isSitting = roomUnit.hasStatus('sit');
-
-        if (isSitting) {
-            roomUnit.removeStatus('sit');
+        // Toggle lay status
+        if (roomUnit.hasStatus('lay')) {
+            roomUnit.removeStatus('lay');
             roomUnit.setNeedsUpdate(true);
         } else {
-            // Use the sit() method which handles cardinal direction snapping
-            roomUnit.sit(0.5);
+            roomUnit.lay(0.5);
         }
+
         return true;
     }
 }

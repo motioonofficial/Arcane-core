@@ -25,55 +25,48 @@ export class InventoryItem {
 
     /**
      * Serialize for inventory composer
+     * Format matches Java Arcturus emulator
      */
     public serialize(message: ServerMessage): void {
-        message.appendInt(this.data.id);
-        message.appendString(this.definition.getType().toUpperCase());
-        message.appendInt(this.data.id); // Ref ID
-        message.appendInt(this.definition.getSpriteId());
+        message.appendInt(this.data.id); // Item ID
+        message.appendString(this.definition.getType().toUpperCase()); // "S" or "I"
+        message.appendInt(this.data.id); // Reference ID
+        message.appendInt(this.definition.getSpriteId()); // Sprite ID
 
-        // Category
-        const category = this.getCategory();
-        message.appendInt(category);
+        // Category (1 = regular furniture)
+        message.appendInt(1);
 
-        // Extra data based on category
-        this.serializeExtraData(message, category);
+        // Extra data serialization (matches InteractionDefault.serializeExtradata)
+        message.appendInt(this.isLimited() ? 256 : 0); // 256 = limited, 0 = normal
+        message.appendString(this.data.extraData || '0'); // Extra data
+
+        // If limited, add limited info
+        if (this.isLimited()) {
+            message.appendInt(this.data.limitedNumber); // Limited sells/number
+            message.appendInt(this.data.limitedStack); // Limited stack
+        }
 
         message.appendBoolean(this.definition.canRecycle());
         message.appendBoolean(this.definition.canTrade());
-        message.appendBoolean(this.data.limitedNumber === 0); // Stackable if not limited
+        message.appendBoolean(!this.isLimited() && this.definition.canInventoryStack()); // Stackable
         message.appendBoolean(this.definition.canMarketplace());
 
         message.appendInt(-1); // Seconds to expiration (-1 = no expiration)
         message.appendBoolean(true); // Has rent period started
         message.appendInt(-1); // Room ID (-1 = not placed)
 
-        // Slot ID for newer clients
-        if (!this.definition.isWallItem()) {
-            message.appendString('');
-            message.appendInt(0);
+        // Floor items need extra data at the end
+        if (this.definition.isFloorItem()) {
+            message.appendString(''); // Slot ID
+            message.appendInt(1); // Unknown (gift color/ribbon in Java)
         }
     }
 
-    private getCategory(): number {
-        // Limited edition
-        if (this.data.limitedNumber > 0) {
-            return 256;
-        }
-        // Default category based on interaction type
-        return 1;
-    }
-
-    private serializeExtraData(message: ServerMessage, category: number): void {
-        if (category === 256) {
-            // Limited edition
-            message.appendString(this.data.extraData || '0');
-            message.appendInt(this.data.limitedNumber);
-            message.appendInt(this.data.limitedStack);
-        } else {
-            // Default
-            message.appendString(this.data.extraData || '0');
-        }
+    /**
+     * Check if this is a limited edition item
+     */
+    public isLimited(): boolean {
+        return this.data.limitedNumber > 0 && this.data.limitedStack > 0;
     }
 
     // Getters

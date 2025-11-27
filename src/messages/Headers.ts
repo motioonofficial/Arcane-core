@@ -48,6 +48,8 @@ export const Incoming = {
     GetAchievementsEvent: 219,
     GetBadgesEvent: 2769,
     GetInventoryEvent: 3150,
+    GetBotInventoryEvent: 3848,
+    GetPetInventoryEvent: 3095,
     GetWardrobeEvent: 2742,
 
     // Catalog
@@ -128,6 +130,14 @@ export const Incoming = {
     GetSoundSettingsEvent: 2388,
     SetSoundSettingsEvent: 1367,
     EventLogEvent: 3457,
+
+    // Additional packets
+    GetPromoArticlesEvent: 3878,
+    GetIgnoredUsersEvent: 813,
+    GetRelationshipsEvent: 796,
+    GetForumsListEvent: 2487,
+    GetMOTDEvent: 21,
+    GetAvailabilityStatusEvent: 3898,
 } as const;
 
 export const Outgoing = {
@@ -230,6 +240,12 @@ export const Outgoing = {
     WhisperComposer: 2704,
     UserTypingComposer: 1717,
 
+    // Inventory
+    UnseenItemsComposer: 2103,
+    FurniListInvalidateComposer: 3151,
+    BotInventoryComposer: 3086,
+    PetInventoryComposer: 2455,
+
     // Items
     ObjectAddComposer: 1534,
     ObjectUpdateComposer: 3776,
@@ -274,6 +290,12 @@ export const Outgoing = {
     // Misc
     SoundSettingsComposer: 1367,
     LatencyResponseComposer: 10,
+
+    // Additional composers
+    PromoArticlesComposer: 1893,
+    IgnoredUsersComposer: 126,
+    RelationshipsComposer: 2016,
+    ForumsListComposer: 3001,
 } as const;
 
 export type IncomingHeader = typeof Incoming[keyof typeof Incoming];

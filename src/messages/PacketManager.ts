@@ -22,11 +22,34 @@ import { LatencyPingRequestEvent } from './incoming/handshake/LatencyPingRequest
 
 // Import handlers - Users
 import { InfoRetrieveEvent } from './incoming/users/InfoRetrieveEvent';
+import { GetCreditsInfoEvent } from './incoming/users/GetCreditsInfoEvent';
+import { GetAchievementsEvent } from './incoming/users/GetAchievementsEvent';
+import { ScrGetUserInfoEvent } from './incoming/users/ScrGetUserInfoEvent';
+import { GetHabboClubDataEvent } from './incoming/users/GetHabboClubDataEvent';
+import { GetIgnoredUsersEvent } from './incoming/users/GetIgnoredUsersEvent';
+import { GetRelationshipsEvent } from './incoming/users/GetRelationshipsEvent';
+
+// Import handlers - Misc
+import { GetPromoArticlesEvent } from './incoming/misc/GetPromoArticlesEvent';
+import { GetForumsListEvent } from './incoming/misc/GetForumsListEvent';
+import { GetMOTDEvent } from './incoming/misc/GetMOTDEvent';
+import { GetAvailabilityStatusEvent } from './incoming/misc/GetAvailabilityStatusEvent';
+
+// Import handlers - Messenger
+import { MessengerInitEvent } from './incoming/messenger/MessengerInitEvent';
+import { GetBuddyRequestsEvent } from './incoming/messenger/GetBuddyRequestsEvent';
 
 // Import handlers - Navigator
 import { RequestNewNavigatorDataEvent } from './incoming/navigator/RequestNewNavigatorDataEvent';
 import { RequestNewNavigatorRoomsEvent } from './incoming/navigator/RequestNewNavigatorRoomsEvent';
 import { RequestNavigatorSettingsEvent } from './incoming/navigator/RequestNavigatorSettingsEvent';
+import { GetUserFlatCatsEvent } from './incoming/navigator/GetUserFlatCatsEvent';
+
+// Import handlers - Catalog
+import { GetClubGiftInfoEvent } from './incoming/catalog/GetClubGiftInfoEvent';
+import { GetCatalogIndexEvent } from './incoming/catalog/GetCatalogIndexEvent';
+import { GetCatalogPageEvent } from './incoming/catalog/GetCatalogPageEvent';
+import { PurchaseFromCatalogEvent } from './incoming/catalog/PurchaseFromCatalogEvent';
 
 // Import handlers - Rooms
 import { GetGuestRoomEvent } from './incoming/rooms/GetGuestRoomEvent';
@@ -35,6 +58,7 @@ import { GetHeightMapEvent } from './incoming/rooms/GetHeightMapEvent';
 
 // Import handlers - Room Users
 import { RoomUserWalkEvent } from './incoming/rooms/users/RoomUserWalkEvent';
+import { RoomUserLookAtEvent } from './incoming/rooms/users/RoomUserLookAtEvent';
 
 // Import handlers - Room Chat
 import { RoomUserTalkEvent } from './incoming/rooms/chat/RoomUserTalkEvent';
@@ -58,6 +82,8 @@ import { FloorPlanEditorSaveEvent } from './incoming/floorplaneditor/FloorPlanEd
 
 // Import handlers - Inventory
 import { GetInventoryEvent } from './incoming/users/GetInventoryEvent';
+import { GetBotInventoryEvent } from './incoming/users/GetBotInventoryEvent';
+import { GetPetInventoryEvent } from './incoming/users/GetPetInventoryEvent';
 
 import { Incoming } from './Headers';
 
@@ -88,11 +114,34 @@ export class PacketManager {
 
         // Users
         this.register(Incoming.InfoRetrieveEvent, InfoRetrieveEvent);
+        this.register(Incoming.GetCreditsInfoEvent, GetCreditsInfoEvent);
+        this.register(Incoming.GetAchievementsEvent, GetAchievementsEvent);
+        this.register(Incoming.ScrGetUserInfoEvent, ScrGetUserInfoEvent);
+        this.register(Incoming.GetHabboClubDataEvent, GetHabboClubDataEvent);
+        this.register(Incoming.GetIgnoredUsersEvent, GetIgnoredUsersEvent);
+        this.register(Incoming.GetRelationshipsEvent, GetRelationshipsEvent);
+
+        // Misc
+        this.register(Incoming.GetPromoArticlesEvent, GetPromoArticlesEvent);
+        this.register(Incoming.GetForumsListEvent, GetForumsListEvent);
+        this.register(Incoming.GetMOTDEvent, GetMOTDEvent);
+        this.register(Incoming.GetAvailabilityStatusEvent, GetAvailabilityStatusEvent);
+
+        // Messenger
+        this.register(Incoming.MessengerInitEvent, MessengerInitEvent);
+        this.register(Incoming.GetBuddyRequestsEvent, GetBuddyRequestsEvent);
 
         // Navigator
         this.register(Incoming.RequestNewNavigatorDataEvent, RequestNewNavigatorDataEvent);
         this.register(Incoming.RequestNewNavigatorRoomsEvent, RequestNewNavigatorRoomsEvent);
         this.register(Incoming.RequestNavigatorSettingsEvent, RequestNavigatorSettingsEvent);
+        this.register(Incoming.GetUserFlatCatsEvent, GetUserFlatCatsEvent);
+
+        // Catalog
+        this.register(Incoming.GetClubGiftInfoEvent, GetClubGiftInfoEvent);
+        this.register(Incoming.GetCatalogIndexEvent, GetCatalogIndexEvent);
+        this.register(Incoming.GetCatalogPageEvent, GetCatalogPageEvent);
+        this.register(Incoming.PurchaseFromCatalogEvent, PurchaseFromCatalogEvent);
 
         // Rooms
         this.register(Incoming.GetGuestRoomEvent, GetGuestRoomEvent);
@@ -101,6 +150,7 @@ export class PacketManager {
 
         // Room Users
         this.register(Incoming.RoomUserWalkEvent, RoomUserWalkEvent);
+        this.register(Incoming.RoomUserLookAtEvent, RoomUserLookAtEvent);
 
         // Room Chat
         this.register(Incoming.ChatEvent, RoomUserTalkEvent);
@@ -119,6 +169,8 @@ export class PacketManager {
 
         // Inventory
         this.register(Incoming.GetInventoryEvent, GetInventoryEvent);
+        this.register(Incoming.GetBotInventoryEvent, GetBotInventoryEvent);
+        this.register(Incoming.GetPetInventoryEvent, GetPetInventoryEvent);
 
         // Floor Plan Editor
         this.register(Incoming.FloorPlanEditorRequestDoorSettingsEvent, FloorPlanEditorRequestDoorSettingsEvent);

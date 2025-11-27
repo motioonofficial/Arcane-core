@@ -13,8 +13,7 @@ interface InventoryItemRow {
     user_id: number;
     item_id: number;
     extra_data: string;
-    limited_number: number;
-    limited_stack: number;
+    limited_data: string; // format: "number:stack" (e.g., "0:0", "1:250")
 }
 
 export class UserInventory {
@@ -36,15 +35,33 @@ export class UserInventory {
         const db = emulator.getDatabase();
 
         try {
+            this.logger.info(`Loading inventory for user ${this.habbo.getId()}...`);
+
             const rows = await db.query<InventoryItemRow[]>(
                 `SELECT * FROM items WHERE user_id = ? AND room_id = 0`,
                 [this.habbo.getId()]
             );
 
+            this.logger.info(`Found ${rows.length} items in database for user ${this.habbo.getId()}`);
+
+            let skippedCount = 0;
             for (const row of rows) {
                 const definition = this.itemManager.getDefinition(row.item_id);
                 if (!definition) {
+                    this.logger.debug(`Skipping item ${row.id}: no definition for item_id ${row.item_id}`);
+                    skippedCount++;
                     continue;
+                }
+
+                // Parse limited_data (format: "number:stack")
+                let limitedNumber = 0;
+                let limitedStack = 0;
+                if (row.limited_data && row.limited_data !== '0:0') {
+                    const parts = row.limited_data.split(':');
+                    if (parts.length === 2) {
+                        limitedNumber = parseInt(parts[0], 10) || 0;
+                        limitedStack = parseInt(parts[1], 10) || 0;
+                    }
                 }
 
                 const data: InventoryItemData = {
@@ -52,8 +69,8 @@ export class UserInventory {
                     userId: row.user_id,
                     baseItemId: row.item_id,
                     extraData: row.extra_data || '0',
-                    limitedNumber: row.limited_number || 0,
-                    limitedStack: row.limited_stack || 0
+                    limitedNumber: limitedNumber,
+                    limitedStack: limitedStack
                 };
 
                 const item = new InventoryItem(data, definition);
@@ -61,7 +78,7 @@ export class UserInventory {
             }
 
             this.loaded = true;
-            this.logger.debug(`Loaded ${this.items.size} inventory items`);
+            this.logger.info(`Loaded ${this.items.size} inventory items (${skippedCount} skipped due to missing definitions)`);
         } catch (error) {
             this.logger.error('Failed to load inventory:', error);
         }

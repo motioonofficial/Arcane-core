@@ -11,7 +11,10 @@ export class GetInventoryEvent extends MessageHandler {
 
     public async handle(): Promise<void> {
         const habbo = this.client.getHabbo();
-        if (!habbo) return;
+        if (!habbo) {
+            this.logger.debug('No habbo for client');
+            return;
+        }
 
         const inventory = habbo.getInventory();
         if (!inventory) {
@@ -19,12 +22,17 @@ export class GetInventoryEvent extends MessageHandler {
             return;
         }
 
+        this.logger.info(`GetInventoryEvent called for user ${habbo.getId()}`);
+
         // Load if not loaded
         if (!inventory.isLoaded()) {
+            this.logger.debug('Loading inventory...');
             await inventory.load();
+            this.logger.debug('Inventory loaded');
         }
 
         const items = inventory.getItems();
+        this.logger.info(`Sending inventory: ${items.length} items for user ${habbo.getId()}`);
 
         // Send inventory (can be paginated for large inventories)
         const itemsPerPage = 500;
@@ -35,7 +43,13 @@ export class GetInventoryEvent extends MessageHandler {
             const end = Math.min(start + itemsPerPage, items.length);
             const pageItems = items.slice(start, end);
 
-            this.client.send(new InventoryItemsComposer(page, totalPages, pageItems).compose());
+            try {
+                const composer = new InventoryItemsComposer(page, totalPages, pageItems);
+                this.client.send(composer.compose());
+                this.logger.debug(`Sent inventory page ${page + 1}/${totalPages} with ${pageItems.length} items`);
+            } catch (error) {
+                this.logger.error('Error sending inventory:', error);
+            }
         }
     }
 

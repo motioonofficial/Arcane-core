@@ -57,6 +57,18 @@ export class RoomProcess {
                 const needsUpdate = roomUnit.processMovement();
                 if (needsUpdate) {
                     usersToUpdate.push(habbo);
+                    roomUnit.resetIdleTimer(); // Reset idle when moving
+                } else {
+                    // Not moving - increment idle timer
+                    roomUnit.incrementIdleTimer();
+
+                    // Do random head look when idle
+                    if (roomUnit.isIdle()) {
+                        const didLook = roomUnit.doRandomHeadLook();
+                        if (didLook && !usersToUpdate.includes(habbo)) {
+                            usersToUpdate.push(habbo);
+                        }
+                    }
                 }
 
                 // Check if unit needs manual update (e.g., after stopping)

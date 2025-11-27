@@ -107,6 +107,13 @@ export class OpenFlatConnectionEvent extends MessageHandler {
         scoreResponse.appendBoolean(true); // Can vote
         this.client.send(scoreResponse);
 
+        // === PHASE 6: Send room visualization settings ===
+        const vizSettings = new ServerMessage(Outgoing.RoomVisualizationSettingsComposer);
+        vizSettings.appendBoolean(room.getData().hideWall);
+        vizSettings.appendInt(room.getData().wallThickness);
+        vizSettings.appendInt(room.getData().floorThickness);
+        this.client.send(vizSettings);
+
         // Now we wait for GetHeightMapEvent from client
     }
 

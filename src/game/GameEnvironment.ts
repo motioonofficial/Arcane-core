@@ -7,6 +7,7 @@ import { Logger } from '../utils/Logger';
 import { RoomManager } from './rooms/RoomManager';
 import { NavigatorManager } from './navigator/NavigatorManager';
 import { ItemManager } from './items/ItemManager';
+import { CatalogManager } from './catalog/CatalogManager';
 import { CommandManager, commandManager } from './commands/CommandManager';
 
 export class GameEnvironment {
@@ -16,6 +17,7 @@ export class GameEnvironment {
     private roomManager!: RoomManager;
     private navigatorManager!: NavigatorManager;
     private itemManager!: ItemManager;
+    private catalogManager!: CatalogManager;
     private commandManagerRef = commandManager;
 
     // Schedulers
@@ -38,6 +40,11 @@ export class GameEnvironment {
         this.itemManager = new ItemManager();
         await this.itemManager.initialize();
         this.logger.debug('ItemManager loaded');
+
+        // Catalog Manager (depends on ItemManager)
+        this.catalogManager = new CatalogManager();
+        await this.catalogManager.initialize(this.itemManager);
+        this.logger.debug('CatalogManager loaded');
 
         // Room Manager
         this.roomManager = new RoomManager();
@@ -95,6 +102,10 @@ export class GameEnvironment {
 
     public getCommandManager(): CommandManager {
         return this.commandManagerRef;
+    }
+
+    public getCatalogManager(): CatalogManager {
+        return this.catalogManager;
     }
 }
 

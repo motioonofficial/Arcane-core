@@ -39,6 +39,34 @@ export class RoomUserWalkEvent extends MessageHandler {
             return;
         }
 
+        // Teleport mode - instant movement
+        if (roomUnit.isTeleporting()) {
+            // Clear any current walking
+            roomUnit.stopWalking();
+
+            // Get target height
+            const targetZ = targetTile.getStackHeight();
+
+            // Set position directly (updates both current and previous - no animation)
+            roomUnit.setPosition(targetX, targetY, targetZ);
+
+            // Calculate rotation towards target
+            const rotation = Pathfinder.calculateRotation(roomUnit.getPreviousX(), roomUnit.getPreviousY(), targetX, targetY);
+            roomUnit.setRotation(rotation);
+
+            // Mark for status update
+            roomUnit.setNeedsUpdate(true);
+
+            this.logger.movement(habbo.getId(), habbo.getUsername(), {
+                fromX: roomUnit.getPreviousX(),
+                fromY: roomUnit.getPreviousY(),
+                toX: targetX,
+                toY: targetY,
+                action: 'TELEPORT'
+            });
+            return;
+        }
+
         // Find path
         const path = Pathfinder.findPath(
             layout,

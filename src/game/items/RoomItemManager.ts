@@ -21,8 +21,7 @@ interface RoomItemRow {
     z: number;
     rot: number;
     extra_data: string;
-    limited_number: number;
-    limited_stack: number;
+    limited_data: string; // format: "number:stack"
     wall_pos: string;
 }
 
@@ -72,6 +71,17 @@ export class RoomItemManager {
     }
 
     private loadFloorItem(row: RoomItemRow, definition: FurnitureDefinition): void {
+        // Parse limited_data (format: "number:stack")
+        let limitedNumber = 0;
+        let limitedStack = 0;
+        if (row.limited_data && row.limited_data !== '0:0') {
+            const parts = row.limited_data.split(':');
+            if (parts.length === 2) {
+                limitedNumber = parseInt(parts[0], 10) || 0;
+                limitedStack = parseInt(parts[1], 10) || 0;
+            }
+        }
+
         const data: RoomItemData = {
             id: row.id,
             roomId: row.room_id,
@@ -83,8 +93,8 @@ export class RoomItemManager {
             z: row.z,
             rotation: row.rot,
             extraData: row.extra_data || '0',
-            limitedNumber: row.limited_number || 0,
-            limitedStack: row.limited_stack || 0
+            limitedNumber: limitedNumber,
+            limitedStack: limitedStack
         };
 
         const item = new RoomItem(data, definition);

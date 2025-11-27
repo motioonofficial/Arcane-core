@@ -12,13 +12,16 @@ import type { WebSocketClient } from '../../network/WebSocketClient';
 type AnyClient = GameClient | WebSocketClient;
 
 // Import commands
-import { AboutCommand } from './list/AboutCommand';
 import { InfoCommand } from './list/InfoCommand';
 import { CoordsCommand } from './list/CoordsCommand';
 import { PickallCommand } from './list/PickallCommand';
 import { HotelAlertCommand } from './list/HotelAlertCommand';
 import { CommandsCommand } from './list/CommandsCommand';
 import { SitCommand } from './list/SitCommand';
+import { RoomAlertCommand } from './list/RoomAlertCommand';
+import { TeleportCommand } from './list/TeleportCommand';
+import { LayCommand } from './list/LayCommand';
+import { StandCommand } from './list/StandCommand';
 
 export class CommandManager {
     private logger = new Logger('CommandManager');
@@ -32,17 +35,20 @@ export class CommandManager {
 
     private registerCommands(): void {
         // User commands
-        this.register(new AboutCommand());
         this.register(new InfoCommand());
         this.register(new CoordsCommand());
         this.register(new CommandsCommand());
         this.register(new SitCommand());
+        this.register(new LayCommand());
+        this.register(new StandCommand());
 
         // Room owner commands
         this.register(new PickallCommand());
 
         // Staff commands
         this.register(new HotelAlertCommand());
+        this.register(new RoomAlertCommand());
+        this.register(new TeleportCommand());
     }
 
     private register(command: Command): void {

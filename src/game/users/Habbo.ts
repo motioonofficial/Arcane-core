@@ -66,6 +66,9 @@ export class Habbo {
         const itemManager = game.getItemManager();
         if (itemManager) {
             this.inventory = new UserInventory(this, itemManager);
+            this.logger.debug('Inventory initialized');
+        } else {
+            this.logger.warn('ItemManager not available, inventory not initialized');
         }
     }
 
@@ -264,5 +267,43 @@ export class Habbo {
     public hasPermission(permission: string): boolean {
         // TODO: Implement permission system
         return this.rank >= 4;
+    }
+
+    public hasClub(): boolean {
+        // TODO: Implement proper club subscription check
+        return this.rank >= 2;
+    }
+
+    public isVip(): boolean {
+        // TODO: Implement proper VIP check
+        return this.rank >= 3;
+    }
+
+    /**
+     * Get points by type (0 = duckets/pixels, 5 = diamonds, etc.)
+     */
+    public getPointsByType(type: number): number {
+        switch (type) {
+            case 0:
+                return this.pixels; // Duckets
+            case 5:
+                return this.points; // Diamonds
+            default:
+                return this.pixels;
+        }
+    }
+
+    /**
+     * Remove points by type
+     */
+    public removePointsByType(type: number, amount: number): boolean {
+        switch (type) {
+            case 0:
+                return this.removePixels(amount);
+            case 5:
+                return this.removePoints(amount);
+            default:
+                return this.removePixels(amount);
+        }
     }
 }

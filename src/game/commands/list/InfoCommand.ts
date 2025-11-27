@@ -7,13 +7,14 @@ import { ServerMessage } from '../../../messages/ServerMessage';
 import { Outgoing } from '../../../messages/Headers';
 import { emulator } from '../../../core/Emulator';
 import { game } from '../../GameEnvironment';
+import * as os from 'os';
 import type { Habbo } from '../../users/Habbo';
 import type { Room } from '../../rooms/Room';
 
 export class InfoCommand extends Command {
     constructor() {
         super('info', 'Emülatör bilgilerini gösterir', 'info');
-        this.aliases = ['about', 'server', 'online'];
+        this.aliases = ['about', 'server', 'online', 'version'];
         this.permission = CommandPermission.USER;
     }
 
@@ -34,30 +35,31 @@ export class InfoCommand extends Command {
         const memUsed = Math.round(process.memoryUsage().heapUsed / 1024 / 1024);
         const memTotal = Math.round(process.memoryUsage().heapTotal / 1024 / 1024);
 
+        // CPU info
+        const cpuCores = os.cpus().length;
+
         const uptimeStr = `${days} gün, ${hours} saat, ${minutes} dakika, ${secs} saniye`;
 
         const content =
-            `<b>Arcane Emulator v1.0.0</b>\r` +
-            `<b>TypeScript/Bun Habbo Emulator</b>\r\r` +
-            `<b>Hotel İstatistikleri</b>\r` +
-            `- Online Kullanıcı: ${onlineUsers}\r` +
-            `- Eşya Tanımı: ${itemDefinitions}\r\r` +
-            `<b>Sunucu İstatistikleri</b>\r` +
-            `- Uptime: ${uptimeStr}\r` +
-            `- RAM Kullanımı: ${memUsed}/${memTotal} MB\r` +
-            `- CPU Çekirdek: ${navigator?.hardwareConcurrency || 'N/A'}\r` +
-            `- Platform: Bun Runtime\r\r` +
-            `<b>Arcane Team tarafından geliştirilmiştir.</b>`;
+            `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\r` +
+            `     <b>ARCANE EMULATOR</b>\r` +
+            `        <i>v1.0.0</i>\r` +
+            `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\r\r` +
+            `<b>◆ Hotel İstatistikleri</b>\r` +
+            `   ▸ Online Kullanıcı: ${onlineUsers}\r` +
+            `   ▸ Eşya Tanımı: ${itemDefinitions}\r\r` +
+            `<b>◆ Sunucu İstatistikleri</b>\r` +
+            `   ▸ Uptime: ${uptimeStr}\r` +
+            `   ▸ RAM: ${memUsed}/${memTotal} MB\r` +
+            `   ▸ CPU: ${cpuCores} Çekirdek\r` +
+            `   ▸ Platform: Bun Runtime\r\r` +
+            `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\r` +
+            `<b>Geliştiriciler:</b> Motioon, beck10s\r` +
+            `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
 
-        const message = new ServerMessage(Outgoing.NotificationDialogComposer);
-        message.appendString('furni_placement_error');
-        message.appendInt(4); // Keys count
-        message.appendString('image');
-        message.appendString('${image.library.url}notifications/fig_info.png');
-        message.appendString('message');
+        const message = new ServerMessage(Outgoing.BroadcastMessageAlertComposer);
         message.appendString(content);
-        message.appendString('title');
-        message.appendString('Arcane Emulator');
+        message.appendString(''); // URL
 
         client.send(message);
         return true;

@@ -78,8 +78,27 @@ export class RoomUnit {
     private path: RoomTile[] = [];
     private pathIndex: number = 0;
     private needsUpdate: boolean = false;
+    private teleporting: boolean = false;
+
+    // Idle & Look
+    private idleTimer: number = 0;
+    private lookingAtUser: boolean = false;
+    private lookTargetX: number = -1;
+    private lookTargetY: number = -1;
+    private lastHeadLookTime: number = 0;
+    private headLookDuration: number = 0;
+    private headLockFromUser: boolean = false; // true if locked from looking at user
+    private originalHeadRotation: RoomUserRotation = RoomUserRotation.SOUTH;
 
     constructor() {}
+
+    public isTeleporting(): boolean {
+        return this.teleporting;
+    }
+
+    public setTeleporting(value: boolean): void {
+        this.teleporting = value;
+    }
 
     public getId(): number {
         return this.id;
@@ -377,6 +396,210 @@ export class RoomUnit {
     public stopWalking(): void {
         this.clearPath();
         this.removeStatus(RoomUnitStatus.MOVE);
+        this.needsUpdate = true;
+    }
+
+    // === IDLE & LOOK METHODS ===
+
+    /**
+     * Reset idle timer (called when user does something)
+     */
+    public resetIdleTimer(): void {
+        this.idleTimer = 0;
+        this.lookingAtUser = false;
+    }
+
+    /**
+     * Increment idle timer
+     */
+    public incrementIdleTimer(): void {
+        this.idleTimer++;
+    }
+
+    public getIdleTimer(): number {
+        return this.idleTimer;
+    }
+
+    /**
+     * Check if user is idle (not doing anything for a while)
+     */
+    public isIdle(): boolean {
+        return this.idleTimer > 10; // ~5 seconds at 500ms tick
+    }
+
+    /**
+     * Look at a specific position
+     * Head can turn ±1 from body and lock for 5 seconds
+     * If target is behind (±3, ±4), whole body turns
+     */
+    public lookAt(targetX: number, targetY: number): void {
+        if (this.walking) return;
+        if (this.x === targetX && this.y === targetY) return;
+
+        const targetRotation = Pathfinder.calculateRotation(this.x, this.y, targetX, targetY);
+
+        // Calculate shortest rotation difference (-4 to +4)
+        let diff = targetRotation - this.bodyRotation;
+        if (diff > 4) diff -= 8;
+        if (diff < -4) diff += 8;
+
+        if (diff === 0) {
+            // Already facing target
+            this.headRotation = this.bodyRotation;
+        } else if (diff === 1 || diff === -1) {
+            // Target is slightly to the side - turn head and lock
+            this.headRotation = targetRotation as RoomUserRotation;
+            this.lockHeadLook(5000); // Lock for 5 seconds
+        } else if (diff === 2 || diff === -2) {
+            // Target is 90 degrees to the side - turn head to max and lock
+            const headDir = (this.bodyRotation + (diff > 0 ? 1 : -1) + 8) % 8;
+            this.headRotation = headDir as RoomUserRotation;
+            this.lockHeadLook(5000); // Lock for 5 seconds
+        } else {
+            // Target is behind (±3, ±4) - turn whole body
+            this.bodyRotation = targetRotation as RoomUserRotation;
+            this.headRotation = targetRotation as RoomUserRotation;
+        }
+
+        this.lookingAtUser = true;
+        this.lookTargetX = targetX;
+        this.lookTargetY = targetY;
+        this.needsUpdate = true;
+    }
+
+    /**
+     * Lock head look for a duration (prevents random head movements)
+     */
+    private lockHeadLook(duration: number): void {
+        this.lastHeadLookTime = Date.now();
+        this.headLookDuration = duration;
+        this.headLockFromUser = true; // Mark as user look lock
+        this.originalHeadRotation = this.headRotation;
+    }
+
+    /**
+     * Stop looking at user and return head to body direction
+     */
+    public stopLooking(): void {
+        this.lookingAtUser = false;
+        this.headRotation = this.bodyRotation;
+        this.needsUpdate = true;
+    }
+
+    /**
+     * Random head look for idle animation
+     * Returns true if head was moved
+     */
+    public doRandomHeadLook(): boolean {
+        if (this.walking) return false;
+        if (this.hasStatus(RoomUnitStatus.SIT) || this.hasStatus(RoomUnitStatus.LAY)) return false;
+
+        const now = Date.now();
+
+        // Check if head is locked
+        if (this.headLookDuration > 0) {
+            if (now - this.lastHeadLookTime > this.headLookDuration) {
+                // Lock expired
+                this.headLookDuration = 0;
+
+                if (this.headLockFromUser) {
+                    // Was looking at user - keep head position, just unlock
+                    this.headLockFromUser = false;
+                    this.lookingAtUser = false;
+                    // Head stays where it is - no update needed
+                } else {
+                    // Was random look - return head to body direction
+                    this.headRotation = this.bodyRotation;
+                    this.needsUpdate = true;
+                    return true;
+                }
+            }
+            return false; // Don't do random look while locked
+        }
+
+        // Don't do random look if still looking at user
+        if (this.lookingAtUser) return false;
+
+        // Random chance to look (8% per tick when idle)
+        if (Math.random() > 0.08) return false;
+
+        // Random head rotation (left or right of body, max ±1 rotation only)
+        const randomOffset = Math.random() > 0.5 ? 1 : -1;
+        let newRotation = (this.bodyRotation + randomOffset + 8) % 8;
+        this.headRotation = newRotation as RoomUserRotation;
+
+        // Set duration (2-4 seconds) - random look, not user look
+        this.lastHeadLookTime = now;
+        this.headLookDuration = 2000 + Math.random() * 2000;
+        this.headLockFromUser = false;
+
+        this.needsUpdate = true;
+        return true;
+    }
+
+    public isLookingAtUser(): boolean {
+        return this.lookingAtUser;
+    }
+
+    /**
+     * Snap rotation to nearest cardinal direction (N, E, S, W)
+     * Used for sitting - Habbo only allows 4 sitting directions
+     * 0=N, 2=E, 4=S, 6=W (skip 1,3,5,7 diagonals)
+     */
+    public snapToCardinalDirection(): void {
+        // Map diagonal to nearest cardinal
+        // 1 (NE) -> 0 (N) or 2 (E)
+        // 3 (SE) -> 2 (E) or 4 (S)
+        // 5 (SW) -> 4 (S) or 6 (W)
+        // 7 (NW) -> 6 (W) or 0 (N)
+        const cardinalMap: Record<number, number> = {
+            0: 0, // N -> N
+            1: 2, // NE -> E
+            2: 2, // E -> E
+            3: 4, // SE -> S
+            4: 4, // S -> S
+            5: 4, // SW -> S
+            6: 6, // W -> W
+            7: 0  // NW -> N
+        };
+
+        this.bodyRotation = cardinalMap[this.bodyRotation] as RoomUserRotation;
+        this.headRotation = this.bodyRotation;
+    }
+
+    /**
+     * Get cardinal direction (for sitting)
+     */
+    public getCardinalRotation(): RoomUserRotation {
+        const cardinalMap: Record<number, number> = {
+            0: 0, 1: 2, 2: 2, 3: 4, 4: 4, 5: 4, 6: 6, 7: 0
+        };
+        return cardinalMap[this.bodyRotation] as RoomUserRotation;
+    }
+
+    /**
+     * Sit down with proper rotation snapping
+     */
+    public sit(height: number = 0.5): void {
+        if (this.walking) return;
+
+        // Snap to cardinal direction for sitting
+        this.snapToCardinalDirection();
+
+        // Set sit status
+        this.removeStatus(RoomUnitStatus.LAY);
+        this.setStatus(RoomUnitStatus.SIT, height.toFixed(1));
+        this.needsUpdate = true;
+    }
+
+    /**
+     * Lay down
+     */
+    public lay(height: number = 0.5): void {
+        if (this.walking) return;
+
+        this.removeStatus(RoomUnitStatus.SIT);
+        this.setStatus(RoomUnitStatus.LAY, height.toFixed(1));
         this.needsUpdate = true;
     }
 }
