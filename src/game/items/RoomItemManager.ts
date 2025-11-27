@@ -64,6 +64,9 @@ export class RoomItemManager {
                 }
             }
 
+            // Update all tile states after loading items (like Java)
+            this.room.updateAllTiles();
+
             this.logger.debug(`Loaded ${this.floorItems.size} floor items, ${this.wallItems.size} wall items`);
         } catch (error) {
             this.logger.error('Failed to load room items:', error);
@@ -124,6 +127,16 @@ export class RoomItemManager {
     public addFloorItem(item: RoomItem): void {
         item.setRoom(this.room);
         this.floorItems.set(item.getId(), item);
+
+        // Update tiles affected by this item
+        const def = item.getDefinition();
+        this.room.updateTilesAt(
+            item.getX(),
+            item.getY(),
+            def.getWidth(),
+            def.getLength(),
+            item.getRotation()
+        );
     }
 
     /**
@@ -140,8 +153,17 @@ export class RoomItemManager {
     public removeFloorItem(itemId: number): RoomItem | undefined {
         const item = this.floorItems.get(itemId);
         if (item) {
+            // Store position before removing
+            const x = item.getX();
+            const y = item.getY();
+            const def = item.getDefinition();
+            const rotation = item.getRotation();
+
             item.setRoom(null);
             this.floorItems.delete(itemId);
+
+            // Update tiles affected by this item
+            this.room.updateTilesAt(x, y, def.getWidth(), def.getLength(), rotation);
         }
         return item;
     }
@@ -266,6 +288,26 @@ export class RoomItemManager {
             return false;
         }
         return true;
+    }
+
+    /**
+     * Move a floor item to a new position (updates tiles)
+     */
+    public moveFloorItem(item: RoomItem, newX: number, newY: number, newZ: number, newRotation: number): void {
+        // Store old position
+        const oldX = item.getX();
+        const oldY = item.getY();
+        const oldRotation = item.getRotation();
+        const def = item.getDefinition();
+
+        // Update item position
+        item.setPosition(newX, newY, newZ, newRotation);
+
+        // Update old tiles
+        this.room.updateTilesAt(oldX, oldY, def.getWidth(), def.getLength(), oldRotation);
+
+        // Update new tiles
+        this.room.updateTilesAt(newX, newY, def.getWidth(), def.getLength(), newRotation);
     }
 
     /**

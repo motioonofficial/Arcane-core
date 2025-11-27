@@ -51,31 +51,34 @@ export class ItemManager {
             );
 
             for (const row of rows) {
+                // Note: SQL columns like allow_walk are VARCHAR, so we need to handle both string and number
+                const toBool = (val: any): boolean => val === 1 || val === '1';
+
                 const data: FurnitureDefinitionData = {
                     id: row.id,
                     spriteId: row.sprite_id,
                     publicName: row.public_name,
                     itemName: row.item_name,
                     type: row.type,
-                    width: row.width,
-                    length: row.length,
-                    stackHeight: row.stack_height,
-                    canStack: row.allow_stack === 1,
-                    canSit: row.allow_sit === 1,
-                    canLay: row.allow_lay === 1,
-                    isWalkable: row.allow_walk === 1,
-                    allowRecycle: row.allow_recycle === 1,
-                    allowTrade: row.allow_trade === 1,
-                    allowMarketplace: row.allow_marketplace_sell === 1,
-                    allowGift: row.allow_gift === 1,
-                    allowInventoryStack: row.allow_inventory_stack === 1,
+                    width: row.width || 1,
+                    length: row.length || 1,
+                    stackHeight: row.stack_height || 0,
+                    canStack: toBool(row.allow_stack),
+                    canSit: toBool(row.allow_sit),
+                    canLay: toBool(row.allow_lay),
+                    isWalkable: toBool(row.allow_walk),
+                    allowRecycle: toBool(row.allow_recycle),
+                    allowTrade: toBool(row.allow_trade),
+                    allowMarketplace: toBool(row.allow_marketplace_sell),
+                    allowGift: toBool(row.allow_gift),
+                    allowInventoryStack: toBool(row.allow_inventory_stack),
                     interactionType: row.interaction_type || 'default',
-                    interactionModesCount: row.interaction_modes_count,
+                    interactionModesCount: row.interaction_modes_count || 0,
                     vendingIds: row.vending_ids || '',
                     multiHeight: row.multiheight || '',
                     customParams: row.customparams || '',
-                    effectIdMale: row.effect_id_male,
-                    effectIdFemale: row.effect_id_female
+                    effectIdMale: row.effect_id_male || 0,
+                    effectIdFemale: row.effect_id_female || 0
                 };
 
                 const definition = new FurnitureDefinition(data);

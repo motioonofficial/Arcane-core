@@ -4,9 +4,12 @@
  */
 
 import { Room } from './Room';
+import { RoomTileState } from './RoomLayout';
+import { RoomUnitStatus } from './RoomUnit';
 import { ServerMessage } from '../../messages/ServerMessage';
 import { Outgoing } from '../../messages/Headers';
 import { Logger } from '../../utils/Logger';
+import type { Habbo } from '../users/Habbo';
 
 export class RoomProcess {
     private static readonly TICK_INTERVAL = 500; // 500ms - standard Habbo timing
@@ -46,24 +49,38 @@ export class RoomProcess {
         if (!this.running) return;
 
         try {
-            const usersToUpdate: any[] = [];
+            const usersToUpdate: Habbo[] = [];
 
             // Process all users in room
             for (const habbo of this.room.getHabbos()) {
                 const roomUnit = habbo.getRoomUnit();
                 if (!roomUnit) continue;
 
+                // Check if user just finished walking (for sit/lay check)
+                const wasWalking = roomUnit.isWalking();
+
                 // Process movement - returns true if status changed
                 const needsUpdate = roomUnit.processMovement();
                 if (needsUpdate) {
                     usersToUpdate.push(habbo);
                     roomUnit.resetIdleTimer(); // Reset idle when moving
-                } else {
-                    // Not moving - increment idle timer
+                }
+
+                // Check for sit/lay when user stops walking (like Java sitUpdate)
+                const stoppedWalking = wasWalking && !roomUnit.isWalking();
+                if (stoppedWalking) {
+                    this.handleSitLayCheck(habbo);
+                    if (!usersToUpdate.includes(habbo)) {
+                        usersToUpdate.push(habbo);
+                    }
+                }
+
+                // Not moving - check idle
+                if (!roomUnit.isWalking()) {
                     roomUnit.incrementIdleTimer();
 
-                    // Do random head look when idle
-                    if (roomUnit.isIdle()) {
+                    // Do random head look when idle (but not when sitting/laying)
+                    if (roomUnit.isIdle() && !roomUnit.hasStatus(RoomUnitStatus.SIT) && !roomUnit.hasStatus(RoomUnitStatus.LAY)) {
                         const didLook = roomUnit.doRandomHeadLook();
                         if (didLook && !usersToUpdate.includes(habbo)) {
                             usersToUpdate.push(habbo);
@@ -86,6 +103,75 @@ export class RoomProcess {
             }
         } catch (error) {
             this.logger.error('Error in room cycle:', error);
+        }
+    }
+
+    /**
+     * Check if user should sit or lay after stopping movement
+     * Java: Room.cycleRoomUnit() - checks tile state and sets SIT/LAY status
+     */
+    private handleSitLayCheck(habbo: Habbo): void {
+        const roomUnit = habbo.getRoomUnit();
+        if (!roomUnit) return;
+
+        const x = roomUnit.getX();
+        const y = roomUnit.getY();
+
+        const layout = this.room.getLayout();
+        if (!layout) return;
+
+        const tile = layout.getTile(x, y);
+        if (!tile) return;
+
+        const state = tile.getState();
+
+        this.logger.debug(`SitLayCheck: User at (${x},${y}) tile state: ${RoomTileState[state]}`);
+
+        if (state === RoomTileState.SIT) {
+            // Get the tallest chair at this position (like Java getTallestChair)
+            const chair = this.room.getTallestChair(x, y);
+            if (chair) {
+                this.logger.debug(`Found chair at (${chair.getX()},${chair.getY()}) Z:${chair.getZ()} height:${chair.getDefinition().getSitHeight()}`);
+
+                // Set Z to chair's Z position (like Java: unit.setZ(topItem.getZ()))
+                roomUnit.setZ(chair.getZ());
+
+                // Set rotation to chair rotation (chairs have 4 directions: 0, 2, 4, 6)
+                roomUnit.setRotation(chair.getRotation());
+
+                // Set sit status with height (like Java: Item.getCurrentHeight(topItem))
+                roomUnit.setStatus(RoomUnitStatus.SIT, chair.getDefinition().getSitHeight().toFixed(2));
+                roomUnit.setNeedsUpdate(true);
+
+                this.logger.debug(`User now sitting, Z:${roomUnit.getZ()} rot:${roomUnit.getBodyRotation()}`);
+            } else {
+                this.logger.debug(`No chair found at user position!`);
+            }
+        } else if (state === RoomTileState.LAY) {
+            // Get the bed at this position
+            const bed = this.room.getTopItemAt(x, y);
+            if (bed && bed.getDefinition().canLay()) {
+                this.logger.debug(`Found bed at (${bed.getX()},${bed.getY()}) Z:${bed.getZ()}`);
+
+                roomUnit.setZ(bed.getZ());
+
+                // For beds, rotation is along the bed length (0 or 2)
+                roomUnit.setRotation(bed.getRotation() % 4);
+
+                // Set lay status
+                roomUnit.setStatus(RoomUnitStatus.LAY, bed.getDefinition().getSitHeight().toFixed(2));
+                roomUnit.setNeedsUpdate(true);
+            }
+        } else if (state === RoomTileState.OPEN) {
+            // If user was sitting/laying but tile is now OPEN, stand up
+            if (roomUnit.hasStatus(RoomUnitStatus.SIT)) {
+                roomUnit.removeStatus(RoomUnitStatus.SIT);
+                roomUnit.setNeedsUpdate(true);
+            }
+            if (roomUnit.hasStatus(RoomUnitStatus.LAY)) {
+                roomUnit.removeStatus(RoomUnitStatus.LAY);
+                roomUnit.setNeedsUpdate(true);
+            }
         }
     }
 

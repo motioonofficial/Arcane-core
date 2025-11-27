@@ -306,7 +306,17 @@ export class RoomManager {
 
             // If no custom layout, use standard model
             if (!layout) {
-                layout = this.getLayout(room.getModelName());
+                const baseLayout = this.getLayout(room.getModelName());
+                // Create a copy of the layout for this room (tile states are room-specific)
+                if (baseLayout) {
+                    layout = new RoomLayout(
+                        baseLayout.getName(),
+                        baseLayout.getDoorX(),
+                        baseLayout.getDoorY(),
+                        baseLayout.getDoorDirection(),
+                        baseLayout.getHeightmap()
+                    );
+                }
             }
 
             if (layout) {
@@ -314,8 +324,16 @@ export class RoomManager {
             } else {
                 this.logger.warn(`Layout not found for room ${roomId}: ${room.getModelName()}`);
                 // Try default model
-                const defaultLayout = this.getLayout('model_a');
-                if (defaultLayout) {
+                const baseDefaultLayout = this.getLayout('model_a');
+                if (baseDefaultLayout) {
+                    // Create a copy for this room
+                    const defaultLayout = new RoomLayout(
+                        baseDefaultLayout.getName(),
+                        baseDefaultLayout.getDoorX(),
+                        baseDefaultLayout.getDoorY(),
+                        baseDefaultLayout.getDoorDirection(),
+                        baseDefaultLayout.getHeightmap()
+                    );
                     room.setLayout(defaultLayout);
                 }
             }

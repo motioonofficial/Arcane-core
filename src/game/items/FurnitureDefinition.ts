@@ -120,4 +120,14 @@ export class FurnitureDefinition {
     public isWallItem(): boolean {
         return this.data.type === ItemType.WALL;
     }
+
+    /**
+     * Get the sit height for this furniture
+     * This is the height offset for sitting/laying avatars
+     * Java: Item.getBaseItem().getHeight() for chairs
+     */
+    public getSitHeight(): number {
+        // For sit/lay items, the height is the stack height
+        return this.data.stackHeight;
+    }
 }

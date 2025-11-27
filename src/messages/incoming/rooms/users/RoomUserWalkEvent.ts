@@ -67,9 +67,9 @@ export class RoomUserWalkEvent extends MessageHandler {
             return;
         }
 
-        // Find path
+        // Find path (now uses Room for furniture checks)
         const path = Pathfinder.findPath(
-            layout,
+            room,
             roomUnit.getX(),
             roomUnit.getY(),
             targetX,

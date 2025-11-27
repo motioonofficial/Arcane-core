@@ -4,6 +4,10 @@
  */
 
 import { RoomLayout, RoomTile, RoomTileState } from './RoomLayout';
+import type { Room } from './Room';
+import { Logger } from '../../utils/Logger';
+
+const logger = new Logger('Pathfinder');
 
 interface PathNode {
     tile: RoomTile;
@@ -20,29 +24,52 @@ export class Pathfinder {
 
     /**
      * Find path from start to goal using A* algorithm
+     * @param room - Room instance for furniture checks
+     * @param startX - Start X position
+     * @param startY - Start Y position
+     * @param goalX - Goal X position
+     * @param goalY - Goal Y position
+     * @param allowDiagonal - Allow diagonal movement
      */
     public static findPath(
-        layout: RoomLayout,
+        room: Room,
         startX: number,
         startY: number,
         goalX: number,
         goalY: number,
         allowDiagonal: boolean = true
     ): RoomTile[] {
+        const layout = room.getLayout();
+        if (!layout) return [];
         const startTile = layout.getTile(startX, startY);
         const goalTile = layout.getTile(goalX, goalY);
 
+        logger.debug(`Finding path from (${startX},${startY}) to (${goalX},${goalY})`);
+
         if (!startTile || !goalTile) {
+            logger.debug(`Start or goal tile not found`);
             return [];
         }
 
-        // Can't walk to invalid/blocked tiles
-        if (goalTile.getState() === RoomTileState.INVALID) {
+        const startState = startTile.getState();
+        const goalState = goalTile.getState();
+        logger.debug(`Start tile state: ${RoomTileState[startState]}, Goal tile state: ${RoomTileState[goalState]}`);
+
+        // Can't walk to invalid tiles
+        if (goalState === RoomTileState.INVALID) {
+            logger.debug(`Goal is INVALID, returning empty path`);
             return [];
         }
 
         // Already at goal
         if (startX === goalX && startY === goalY) {
+            return [];
+        }
+
+        // Check if goal is reachable (considering furniture)
+        // BLOCKED tiles cannot be walked to
+        if (goalState === RoomTileState.BLOCKED) {
+            logger.debug(`Goal is BLOCKED, returning empty path`);
             return [];
         }
 
@@ -88,7 +115,7 @@ export class Pathfinder {
                 }
 
                 // Check if tile is walkable
-                if (!this.canWalkTo(current.tile, neighbor, goalTile)) {
+                if (!this.canWalkTo(room, current.tile, neighbor, goalTile)) {
                     continue;
                 }
 
@@ -171,22 +198,40 @@ export class Pathfinder {
 
     /**
      * Check if we can walk from current tile to neighbor
+     * Java: RoomUnit.canMoveToTile() logic
      */
-    private static canWalkTo(from: RoomTile, to: RoomTile, goal: RoomTile): boolean {
+    private static canWalkTo(room: Room, from: RoomTile, to: RoomTile, goal: RoomTile): boolean {
+        const state = to.getState();
+
         // Invalid tiles are never walkable
-        if (to.getState() === RoomTileState.INVALID) {
+        if (state === RoomTileState.INVALID) {
             return false;
         }
 
-        // Blocked tiles are only walkable if they're the goal (for sitting)
-        if (to.getState() === RoomTileState.BLOCKED) {
-            return to.getX() === goal.getX() && to.getY() === goal.getY();
+        // BLOCKED tiles - only walkable if it's the final goal AND it's actually SIT/LAY
+        // (This shouldn't happen normally because SIT/LAY tiles have their own states)
+        if (state === RoomTileState.BLOCKED) {
+            // Only allow if it's the goal tile
+            const isGoal = to.getX() === goal.getX() && to.getY() === goal.getY();
+            if (!isGoal) {
+                return false;
+            }
+            // Even for goal, BLOCKED means truly blocked (not sittable)
+            return false;
         }
+
+        // OPEN, SIT, LAY tiles are walkable
+        // But SIT/LAY only as destination (can walk through to sit)
 
         // Check height difference
         const heightDiff = to.getStackHeight() - from.getStackHeight();
         if (Math.abs(heightDiff) > this.MAX_STEP_HEIGHT) {
-            return false;
+            // Exception: if goal is SIT/LAY, allow stepping up to it
+            const isGoal = to.getX() === goal.getX() && to.getY() === goal.getY();
+            const canSitOrLay = state === RoomTileState.SIT || state === RoomTileState.LAY;
+            if (!(isGoal && canSitOrLay)) {
+                return false;
+            }
         }
 
         return true;
